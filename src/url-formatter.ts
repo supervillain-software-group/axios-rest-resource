@@ -33,16 +33,17 @@ import { AxiosRequestConfig } from 'axios'
  * // }
  * ```
  */
-export const interceptorUrlFormatter = (config: AxiosRequestConfig): AxiosRequestConfig => {
+export const interceptorUrlFormatter = <T extends Partial<AxiosRequestConfig>>(config: T): T => {
   if (!config.params) {
     return config
   }
-  for (const paramName of Object.keys(config.params)) {
-    const param = config.params[paramName]
-    if (config.url && config.url.indexOf(`{${paramName}}`) > -1) {
-      config.url = config.url.replace(`{${paramName}}`, () => param)
-      delete config.params[paramName]
+  const newConfig = { ...config }
+  for (const paramName of Object.keys(newConfig.params)) {
+    const param = newConfig.params[paramName]
+    if (newConfig.url && newConfig.url.indexOf(`{${paramName}}`) > -1) {
+      newConfig.url = newConfig.url.replace(`{${paramName}}`, () => param)
+      delete newConfig.params[paramName]
     }
   }
-  return config
+  return newConfig
 }
