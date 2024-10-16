@@ -19,14 +19,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aigoncharov/axios-rest-resource.git"
+    "url": "git+https://github.com/supervillain-software-group/axios-rest-resource.git"
   },
-  "author": "Andrey Goncharov (andrey@goncharov.page)",
+  "author": "Josh Jordan",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/aigoncharov/axios-rest-resource/issues"
+    "url": "https://github.com/supervillain-software-group/axios-rest-resource/issues"
   },
-  "homepage": "https://github.com/aigoncharov/axios-rest-resource#readme",
+  "homepage": "https://github.com/supervillain-software-group/axios-rest-resource#readme",
   "devDependencies": {
     "@types/jest": "^26.0.0",
     "@types/moxios": "^0.4.9",
