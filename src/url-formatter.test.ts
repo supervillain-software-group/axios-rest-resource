@@ -1,10 +1,8 @@
-import { AxiosRequestConfig } from 'axios'
-
 import { interceptorUrlFormatter } from './url-formatter'
 
 describe('interceptorUrlFormatter', () => {
   test('replaces {tokens} in url and removes used params', () => {
-    const config: AxiosRequestConfig = {
+    const config = {
       params: {
         id: '$$12345',
         unusedParam: 'test',
@@ -19,7 +17,7 @@ describe('interceptorUrlFormatter', () => {
     expect(configUpd.params).not.toHaveProperty('id')
   })
   test('returns original config if no params found', () => {
-    const config: AxiosRequestConfig = {
+    const config = {
       url: 'http://localhost:3000/',
     }
     const configUpd = interceptorUrlFormatter(config)
