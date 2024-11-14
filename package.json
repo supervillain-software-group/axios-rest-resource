@@ -38,7 +38,7 @@
     "jest": "^29.7.0",
     "lint-staged": "^15.2.10",
     "moxios": "^0.4.0",
-    "prettier": "^1.16.1",
+    "prettier": "^3.3.3",
     "ts-jest": "^29.2.5",
     "ts-node": "^8.0.2",
     "tslint": "^5.12.1",
