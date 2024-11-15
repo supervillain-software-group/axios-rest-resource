@@ -1,4 +1,4 @@
-import { AxiosRequestConfig } from 'axios'
+import { InternalAxiosRequestConfig } from 'axios'
 
 /**
  * @description
@@ -33,7 +33,7 @@ import { AxiosRequestConfig } from 'axios'
  * // }
  * ```
  */
-export const interceptorUrlFormatter = (config: AxiosRequestConfig): AxiosRequestConfig => {
+export const interceptorUrlFormatter = (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
   if (!config.params) {
     return config
   }
