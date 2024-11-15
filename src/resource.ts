@@ -1,17 +1,51 @@
-import axios, { AxiosInstance, AxiosPromise, AxiosRequestConfig } from 'axios'
+import axios, { AxiosInstance, AxiosPromise, AxiosRequestConfig, AxiosResponse } from 'axios'
 
 import resourceSchemaDefault from './schemas'
 import { interceptorUrlFormatter } from './url-formatter'
 
-export type IAPIMethod = (requestConfig?: Partial<AxiosRequestConfig>) => AxiosPromise
-export type IResource<Methods extends string> = { [Method in Methods]: IAPIMethod }
-type RequestMethod = 'get' | 'delete' | 'head' | 'options' | 'post' | 'put' | 'patch'
-export interface IAPIMethodSchema {
+export type RequestMethod = 'get' | 'delete' | 'head' | 'options' | 'post' | 'put' | 'patch'
+
+// Base method schema without transformations
+interface IAPIMethodSchemaBase {
   method: RequestMethod
   url?: string
 }
-export type IResourceSchema<T extends string> = { [Key in T]: IAPIMethodSchema }
+
+// Schema with optional transformations
+export interface IAPIMethodSchema<TParams extends any[] = any[], TResponse = any> extends IAPIMethodSchemaBase {
+  transformRequest?: (...args: TParams) => AxiosRequestConfig
+  transformResponse?: (response: AxiosResponse) => TResponse
+}
+
+// Type helpers for different method signatures
+type TransformedRequestMethod<TParams extends any[]> = (...args: TParams) => AxiosPromise
+
+type TransformedResponseMethod<TResponse> = (config?: AxiosRequestConfig) => Promise<TResponse>
+
+type FullyTransformedMethod<TParams extends any[], TResponse> = (...args: TParams) => Promise<TResponse>
+
+// Break down the conditional type into smaller parts
+type WithBothTransforms<TParams extends any[], TResponse> = FullyTransformedMethod<TParams, TResponse>
+type WithRequestTransform<TParams extends any[]> = TransformedRequestMethod<TParams>
+type WithResponseTransform<TResponse> = TransformedResponseMethod<TResponse>
+type WithNoTransforms = (config?: AxiosRequestConfig) => AxiosPromise
+
+export type IAPIMethod<Schema> = Schema extends IAPIMethodSchema<infer TParams, infer TResponse>
+  ? Schema['transformRequest'] extends (...args: any[]) => any
+    ? Schema['transformResponse'] extends (response: AxiosResponse) => any
+      ? WithBothTransforms<TParams, TResponse>
+      : WithRequestTransform<TParams>
+    : Schema['transformResponse'] extends (response: AxiosResponse) => any
+    ? WithResponseTransform<TResponse>
+    : WithNoTransforms
+  : never
+
+export type IResource<Schema> = {
+  [K in keyof Schema]: IAPIMethod<Schema[K]>
+}
+
 export type IResourceMethodsDefault = 'create' | 'read' | 'readOne' | 'remove' | 'update'
+export type IResourceSchema<T extends string> = Record<T, IAPIMethodSchema>
 
 interface IAxiosConfig extends AxiosRequestConfig {
   baseURL: string
@@ -20,6 +54,7 @@ interface IAxiosConfig extends AxiosRequestConfig {
 export class ResourceBuilder {
   public readonly axiosInstance: AxiosInstance
   protected readonly _schemaDefault: IResourceSchema<IResourceMethodsDefault> = resourceSchemaDefault
+
   constructor(axiosConfig: IAxiosConfig) {
     if (!axiosConfig.headers) {
       axiosConfig.headers = {}
@@ -31,31 +66,63 @@ export class ResourceBuilder {
     this.axiosInstance.interceptors.request.use(interceptorUrlFormatter)
   }
 
-  public build(resourceUrl: string): IResource<IResourceMethodsDefault>
-  public build<Methods extends string>(resourceUrl: string, schema: IResourceSchema<Methods>): IResource<Methods>
-  public build<Methods extends string>(
+  public build(resourceUrl: string): IResource<IResourceSchema<IResourceMethodsDefault>>
+  public build<T extends Record<string, IAPIMethodSchema>>(resourceUrl: string, schema: T): IResource<T>
+  public build<T extends Record<string, IAPIMethodSchema>>(
     resourceUrl: string,
-    schema?: IResourceSchema<Methods>,
-  ): IResource<Methods> | IResource<IResourceMethodsDefault> {
+    schema?: T,
+  ): IResource<T> | IResource<IResourceSchema<IResourceMethodsDefault>> {
     if (!schema) {
-      return this._build<IResourceMethodsDefault>(resourceUrl, this._schemaDefault)
+      return this._build(resourceUrl, this._schemaDefault)
     }
-    return this._build<Methods>(resourceUrl, schema)
+    return this._build(resourceUrl, schema)
   }
 
-  protected _build<Methods extends string>(resourceUrl: string, schema: IResourceSchema<Methods>): IResource<Methods> {
-    const resource = {} as IResource<Methods>
-    for (const methodName of Object.keys(schema) as Methods[]) {
+  protected _build<T extends Record<string, IAPIMethodSchema>>(resourceUrl: string, schema: T): IResource<T> {
+    const resource = {} as IResource<T>
+
+    for (const methodName of Object.keys(schema)) {
       const methodSchema = schema[methodName]
       let url = methodSchema.url || ''
       url = `${resourceUrl}${url}`
-      resource[methodName] = (requestConfig = {}) =>
-        this.axiosInstance.request({
-          ...requestConfig,
-          ...methodSchema,
+
+      // Create the base request function
+      const makeRequest = (config: AxiosRequestConfig = {}) => {
+        // Schema method takes precedence
+        const requestConfig: AxiosRequestConfig = {
+          ...config,
+          method: methodSchema.method,
           url,
-        })
+        }
+
+        // Ensure data isn't stringified
+        if (requestConfig.data) {
+          requestConfig.transformRequest = [(data) => data]
+        }
+
+        return this.axiosInstance.request(requestConfig)
+      }
+
+      if (methodSchema.transformRequest && methodSchema.transformResponse) {
+        const method = (...args: any[]) => {
+          const transformedConfig = methodSchema.transformRequest!(...args)
+          return makeRequest(transformedConfig).then(methodSchema.transformResponse)
+        }
+        resource[methodName as keyof T] = method as any
+      } else if (methodSchema.transformRequest) {
+        const method = (...args: any[]) => {
+          const transformedConfig = methodSchema.transformRequest!(...args)
+          return makeRequest(transformedConfig)
+        }
+        resource[methodName as keyof T] = method as any
+      } else if (methodSchema.transformResponse) {
+        const method = (config = {}) => makeRequest(config).then(methodSchema.transformResponse)
+        resource[methodName as keyof T] = method as any
+      } else {
+        resource[methodName as keyof T] = makeRequest as any
+      }
     }
+
     return resource
   }
 }

@@ -13,6 +13,7 @@ Schema-based HTTP client powered by axios. Built with Typescript. Heavily inspir
   - [Custom Schema](#custom-schema)
   - [Partial Schema](#partial-schema)
   - [Rails Schema](#rails-schema)
+  - [Request and Response Transforms](#request-and-response-transforms)
 - [In depth](#in-depth)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -222,6 +223,79 @@ export const entityResource = resourceBuilder.build('/entity', railsResourceSche
 //   destroy: (requestConfig) => axiosPromise // DELETE /entity/{id} (mapped from remove)
 // }
 ```
+
+### Request and Response Transforms
+
+You can add `transformRequest` and `transformResponse` functions to your schema methods to transform parameters into request config and response data into typed results. This can make the API for the resource much more natural, as it can accept and return sensible types rather than dealing with raw request configs and response data.
+
+```ts
+// api/users.ts
+import { resourceBuilder } from 'utils/resource'
+
+interface User {
+  id: number
+  email: string
+}
+
+interface SignInResponse {
+  token: string
+  user: User
+}
+
+export const usersResource = resourceBuilder.build('/users', {
+  signIn: {
+    method: 'post',
+    url: '/sign_in',
+    // Transform parameters into request config
+    transformRequest: (email: string, password: string) => ({
+      data: { email, password },
+      headers: { 'X-Custom': 'test' },
+    }),
+    // Transform response data into typed result
+    transformResponse: (response): SignInResponse => ({
+      token: response.data.auth_token,
+      user: {
+        id: response.data.user.id,
+        email: response.data.user.email,
+      },
+    }),
+  },
+  getProfile: {
+    method: 'get',
+    // Only transform response
+    transformResponse: (response): User => ({
+      id: response.data.id,
+      email: response.data.email,
+    }),
+  },
+  register: {
+    method: 'post',
+    // Only transform request
+    transformRequest: (email: string, password: string) => ({
+      data: { email, password },
+    }),
+  },
+})
+
+// Usage with full type inference
+const signInResult = await usersResource.signIn('email@example.com', 'password')
+console.log(signInResult.token) // string
+console.log(signInResult.user.id) // number
+
+const profile = await usersResource.getProfile()
+console.log(profile.email) // string
+
+const registerResult = await usersResource.register('email@example.com', 'password')
+console.log(registerResult.data) // axios response data
+```
+
+The transforms provide:
+
+- Type-safe parameter transformation with optional parameters
+- Type-safe response data transformation
+- Custom headers support
+- Independent use of transforms (can use either or both)
+- Full TypeScript type inference for parameters and return types
 
 ## In depth
 
