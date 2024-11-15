@@ -1,7 +1,8 @@
 import { AxiosRequestConfig } from 'axios'
 import * as moxios from 'moxios'
 
-import { IAPIMethodSchema, IResourceSchema, ResourceBuilder, resourceSchemaDefault } from './resource'
+import { IAPIMethodSchema, IResourceSchema, ResourceBuilder } from './resource'
+import resourceSchemaDefault from './schemas'
 
 describe(`${ResourceBuilder.name}`, () => {
   beforeEach(() => {

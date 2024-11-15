@@ -9,6 +9,10 @@ Schema-based HTTP client powered by axios. Built with Typescript. Heavily inspir
 - [Quick start](#quick-start)
 - [URL token substituion](#url-token-substituion)
 - [Custom resource schema](#custom-resource-schema)
+  - [Extended Schema](#extended-schema)
+  - [Custom Schema](#custom-schema)
+  - [Partial Schema](#partial-schema)
+  - [Rails Schema](#rails-schema)
 - [In depth](#in-depth)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -85,77 +89,81 @@ axios-rest-resource applies [interceptorUrlFormatter](src/url-formatter.ts) inte
 
 ## Custom resource schema
 
-- Create resource module in your utils folder
+Create resource module in your utils folder:
 
-  ```ts
-  // utils/resource.ts
-  import { ResourceBuilder } from 'axios-rest-resource'
+```ts
+// utils/resource.ts
+import { ResourceBuilder } from 'axios-rest-resource'
 
-  export const resourceBuilder = new ResourceBuilder({
-    baseURL: 'http://localhost:3000',
-  })
-  ```
+export const resourceBuilder = new ResourceBuilder({
+  baseURL: 'http://localhost:3000',
+})
+```
 
-- Using a newly created resource builder create an actual resource
+### Extended Schema
 
-  ```ts
-  // api/entity2.js
-  import { resourceSchemaDefault } from 'axios-rest-resource'
-  import { resourceBuilder } from 'utils/resource'
+Extend the default schema with additional methods:
 
-  export const entity2Resource = resourceBuilder.build('/entity2', {
-    ...resourceSchemaDefault,
-    doSomething: {
-      method: 'post',
-      url: '/do-something',
-    },
-  })
-  // exports an object
-  // {
-  //   create: (requestConfig) => axiosPromise // sends POST http://localhost:3000/entity2,
-  //   read: (requestConfig) => axiosPromise // sends GET http://localhost:3000/entity2,
-  //   readOne: (requestConfig) => axiosPromise // sends GET http://localhost:3000/entity2/{id},
-  //   remove: (requestConfig) => axiosPromise // sends DELETE http://localhost:3000/entity2/{id},
-  //   update: (requestConfig) => axiosPromise // sends PUT http://localhost:3000/entity2/{id},
-  //   doSomething: (requestConfig) => axiosPromise // sends POST http://localhost:3000/entity2/do-something
-  // }
-  ```
+```ts
+// api/entity2.js
+import { resourceSchemaDefault } from 'axios-rest-resource'
+import { resourceBuilder } from 'utils/resource'
 
-- Use your resource whenever you want to make an AJAX call
+export const entity2Resource = resourceBuilder.build('/entity2', {
+  ...resourceSchemaDefault,
+  doSomething: {
+    method: 'post',
+    url: '/do-something',
+  },
+})
+// exports an object
+// {
+//   create: (requestConfig) => axiosPromise // sends POST http://localhost:3000/entity2,
+//   read: (requestConfig) => axiosPromise // sends GET http://localhost:3000/entity2,
+//   readOne: (requestConfig) => axiosPromise // sends GET http://localhost:3000/entity2/{id},
+//   remove: (requestConfig) => axiosPromise // sends DELETE http://localhost:3000/entity2/{id},
+//   update: (requestConfig) => axiosPromise // sends PUT http://localhost:3000/entity2/{id},
+//   doSomething: (requestConfig) => axiosPromise // sends POST http://localhost:3000/entity2/do-something
+// }
+```
 
-  ```ts
-  import { entity2Resource } from 'api/entity2'
+Example usage:
 
-  const resRead = entity2Resource.read()
-  // sends GET http://localhost:3000/entity2
-  // resRead is a Promise of data received from the server
+```ts
+import { entity2Resource } from 'api/entity2'
 
-  const resReadOne = entity2Resource.readOne({ params: { id } })
-  // for id = '123'
-  // sends GET http://localhost:3000/entity2/123
-  // resReadOne is a Promise of data received from the server
+const resRead = entity2Resource.read()
+// sends GET http://localhost:3000/entity2
+// resRead is a Promise of data received from the server
 
-  const resCreate = entity2Resource.create({ data })
-  // for data = { field1: 'test' }
-  // sends POST http://localhost:3000/entity2 with body { field1: 'test' }
-  // resCreate is a Promise of data received from the server
+const resReadOne = entity2Resource.readOne({ params: { id } })
+// for id = '123'
+// sends GET http://localhost:3000/entity2/123
+// resReadOne is a Promise of data received from the server
 
-  const resUpdate = entity2Resource.update({ data, params: { id } })
-  // for data = { field1: 'test' } and id = '123'
-  // sends PUT http://localhost:3000/entity2/123 with body { field1: 'test' }
-  // resUpdate is a Promise of data received from the server
+const resCreate = entity2Resource.create({ data })
+// for data = { field1: 'test' }
+// sends POST http://localhost:3000/entity2 with body { field1: 'test' }
+// resCreate is a Promise of data received from the server
 
-  const resRemove = entity2Resource.remove({ params: { id } })
-  // for id = '123'
-  // sends DELETE http://localhost:3000/entity2/123
-  // resRemove is a Promise of data received from the server
+const resUpdate = entity2Resource.update({ data, params: { id } })
+// for data = { field1: 'test' } and id = '123'
+// sends PUT http://localhost:3000/entity2/123 with body { field1: 'test' }
+// resUpdate is a Promise of data received from the server
 
-  const resDoSomething = entity2Resource.doSomething()
-  // sends POST http://localhost:3000/entity2/do-something
-  // resDoSomething is a Promise of data received from the server
-  ```
+const resRemove = entity2Resource.remove({ params: { id } })
+// for id = '123'
+// sends DELETE http://localhost:3000/entity2/123
+// resRemove is a Promise of data received from the server
 
-You custom schema does not need to extend default schema if you do not want that
+const resDoSomething = entity2Resource.doSomething()
+// sends POST http://localhost:3000/entity2/do-something
+// resDoSomething is a Promise of data received from the server
+```
+
+### Custom Schema
+
+Create a completely custom schema without extending the default:
 
 ```ts
 // api/entity.js
@@ -173,7 +181,9 @@ export const entityResource = resourceBuilder.build('/entity', {
 // }
 ```
 
-Alternatively you can use a partial of a default schema
+### Partial Schema
+
+Use only specific methods from the default schema:
 
 ```ts
 // api/entity.js
@@ -190,6 +200,26 @@ export const entityResource = resourceBuilder.build('/entity', {
 // {
 //   read: (requestConfig) => axiosPromise // sends GET http://localhost:3000/entity,
 //   readOne: (requestConfig) => axiosPromise // sends GET http://localhost:3000/entity/{id},
+// }
+```
+
+### Rails Schema
+
+If you're using Ruby on Rails, there is also a default schema that matches Rails' conventions for controller actions:
+
+```ts
+// api/entity.js
+import { railsResourceSchema } from 'axios-rest-resource'
+import { resourceBuilder } from 'utils/resource'
+
+export const entityResource = resourceBuilder.build('/entity', railsResourceSchema)
+// exports an object with Rails conventional action names:
+// {
+//   index: (requestConfig) => axiosPromise   // GET /entity (mapped from read)
+//   show: (requestConfig) => axiosPromise    // GET /entity/{id} (mapped from readOne)
+//   create: (requestConfig) => axiosPromise  // POST /entity
+//   update: (requestConfig) => axiosPromise  // PUT /entity/{id}
+//   destroy: (requestConfig) => axiosPromise // DELETE /entity/{id} (mapped from remove)
 // }
 ```
 

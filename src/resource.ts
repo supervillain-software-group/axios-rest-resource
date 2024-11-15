@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosPromise, AxiosRequestConfig } from 'axios'
 
+import resourceSchemaDefault from './schemas'
 import { interceptorUrlFormatter } from './url-formatter'
 
 export type IAPIMethod = (requestConfig?: Partial<AxiosRequestConfig>) => AxiosPromise
@@ -11,31 +12,6 @@ export interface IAPIMethodSchema {
 }
 export type IResourceSchema<T extends string> = { [Key in T]: IAPIMethodSchema }
 export type IResourceMethodsDefault = 'create' | 'read' | 'readOne' | 'remove' | 'update'
-
-/**
- * @description
- * Default resource schema used by ResourceBuilder.prototype.build
- */
-export const resourceSchemaDefault: IResourceSchema<IResourceMethodsDefault> = {
-  create: {
-    method: 'post',
-  },
-  read: {
-    method: 'get',
-  },
-  readOne: {
-    method: 'get',
-    url: '/{id}',
-  },
-  remove: {
-    method: 'delete',
-    url: '/{id}',
-  },
-  update: {
-    method: 'put',
-    url: '/{id}',
-  },
-}
 
 interface IAxiosConfig extends AxiosRequestConfig {
   baseURL: string

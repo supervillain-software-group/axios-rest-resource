@@ -5,25 +5,25 @@ import { interceptorUrlFormatter } from './url-formatter'
 describe('interceptorUrlFormatter', () => {
   test('replaces {tokens} in url and removes used params', () => {
     const config: InternalAxiosRequestConfig = {
+      baseURL: '',
+      data: undefined,
+      env: {
+        FormData: null as any,
+      },
       headers: new AxiosHeaders(),
+      maxBodyLength: -1,
+      maxContentLength: -1,
+      method: 'get',
       params: {
         id: '$$12345',
         unusedParam: 'test',
       },
-      url: 'http://localhost:3000/{id}',
-      method: 'get',
-      data: undefined,
-      baseURL: '',
+      timeout: 0,
       transformRequest: [],
       transformResponse: [],
-      timeout: 0,
+      url: 'http://localhost:3000/{id}',
       xsrfCookieName: '',
       xsrfHeaderName: '',
-      maxContentLength: -1,
-      maxBodyLength: -1,
-      env: {
-        FormData: null as any,
-      },
     }
     const configUpd = interceptorUrlFormatter(config)
     expect(configUpd.url).toBe('http://localhost:3000/$$12345')
@@ -34,21 +34,21 @@ describe('interceptorUrlFormatter', () => {
   })
   test('returns original config if no params found', () => {
     const config: InternalAxiosRequestConfig = {
-      headers: new AxiosHeaders(),
-      url: 'http://localhost:3000/',
-      method: 'get',
-      data: undefined,
       baseURL: '',
-      transformRequest: [],
-      transformResponse: [],
-      timeout: 0,
-      xsrfCookieName: '',
-      xsrfHeaderName: '',
-      maxContentLength: -1,
-      maxBodyLength: -1,
+      data: undefined,
       env: {
         FormData: null as any,
       },
+      headers: new AxiosHeaders(),
+      maxBodyLength: -1,
+      maxContentLength: -1,
+      method: 'get',
+      timeout: 0,
+      transformRequest: [],
+      transformResponse: [],
+      url: 'http://localhost:3000/',
+      xsrfCookieName: '',
+      xsrfHeaderName: '',
     }
     const configUpd = interceptorUrlFormatter(config)
     expect(configUpd).toEqual(config)
