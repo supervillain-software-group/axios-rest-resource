@@ -1,6 +1,6 @@
 {
   "name": "axios-rest-resource",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Schema-based HTTP client powered by axios. Built with Typescript. Heavily inspired by AngularJS' $resource.",
   "keywords": [
     "axios",
