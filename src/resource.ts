@@ -13,29 +13,22 @@ interface IAPIMethodSchemaBase {
 
 // Schema with optional transformations
 export interface IAPIMethodSchema<TParams extends any[] = any[], TResponse = any> extends IAPIMethodSchemaBase {
-  transformRequest?: (...args: TParams) => AxiosRequestConfig
-  transformResponse?: (response: AxiosResponse) => TResponse
+  withParams?: (...args: TParams) => AxiosRequestConfig
+  withResult?: (response: AxiosResponse) => TResponse
 }
 
-// Type helpers for different method signatures
-type TransformedRequestMethod<TParams extends any[]> = (...args: TParams) => AxiosPromise
-
-type TransformedResponseMethod<TResponse> = (config?: AxiosRequestConfig) => Promise<TResponse>
-
-type FullyTransformedMethod<TParams extends any[], TResponse> = (...args: TParams) => Promise<TResponse>
-
 // Break down the conditional type into smaller parts
-type WithBothTransforms<TParams extends any[], TResponse> = FullyTransformedMethod<TParams, TResponse>
-type WithRequestTransform<TParams extends any[]> = TransformedRequestMethod<TParams>
-type WithResponseTransform<TResponse> = TransformedResponseMethod<TResponse>
+type WithBothTransforms<TParams extends any[], TResponse> = (...args: TParams) => Promise<TResponse>
+type WithRequestTransform<TParams extends any[]> = (...args: TParams) => AxiosPromise
+type WithResponseTransform<TResponse> = (config?: AxiosRequestConfig) => Promise<TResponse>
 type WithNoTransforms = (config?: AxiosRequestConfig) => AxiosPromise
 
 export type IAPIMethod<Schema> = Schema extends IAPIMethodSchema<infer TParams, infer TResponse>
-  ? Schema['transformRequest'] extends (...args: any[]) => any
-    ? Schema['transformResponse'] extends (response: AxiosResponse) => any
+  ? Schema['withParams'] extends (...args: any[]) => any
+    ? Schema['withResult'] extends (response: AxiosResponse) => any
       ? WithBothTransforms<TParams, TResponse>
       : WithRequestTransform<TParams>
-    : Schema['transformResponse'] extends (response: AxiosResponse) => any
+    : Schema['withResult'] extends (response: AxiosResponse) => any
     ? WithResponseTransform<TResponse>
     : WithNoTransforms
   : never
@@ -95,28 +88,23 @@ export class ResourceBuilder {
           url,
         }
 
-        // Ensure data isn't stringified
-        if (requestConfig.data) {
-          requestConfig.transformRequest = [(data) => data]
-        }
-
         return this.axiosInstance.request(requestConfig)
       }
 
-      if (methodSchema.transformRequest && methodSchema.transformResponse) {
+      if (methodSchema.withParams && methodSchema.withResult) {
         const method = (...args: any[]) => {
-          const transformedConfig = methodSchema.transformRequest!(...args)
-          return makeRequest(transformedConfig).then(methodSchema.transformResponse)
+          const transformedConfig = methodSchema.withParams!(...args)
+          return makeRequest(transformedConfig).then(methodSchema.withResult)
         }
         resource[methodName as keyof T] = method as any
-      } else if (methodSchema.transformRequest) {
+      } else if (methodSchema.withParams) {
         const method = (...args: any[]) => {
-          const transformedConfig = methodSchema.transformRequest!(...args)
+          const transformedConfig = methodSchema.withParams!(...args)
           return makeRequest(transformedConfig)
         }
         resource[methodName as keyof T] = method as any
-      } else if (methodSchema.transformResponse) {
-        const method = (config = {}) => makeRequest(config).then(methodSchema.transformResponse)
+      } else if (methodSchema.withResult) {
+        const method = (config = {}) => makeRequest(config).then(methodSchema.withResult)
         resource[methodName as keyof T] = method as any
       } else {
         resource[methodName as keyof T] = makeRequest as any

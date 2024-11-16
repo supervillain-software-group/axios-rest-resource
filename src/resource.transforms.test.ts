@@ -11,14 +11,14 @@ describe('ResourceBuilder Transforms', () => {
     moxios.uninstall()
   })
 
-  describe('transformRequest', () => {
+  describe('withParams', () => {
     test('transforms parameters into request config', async () => {
       const builder = new ResourceBuilder({ baseURL: 'http://api.example.com' })
 
       const resource = builder.build('/users', {
         signIn: {
           method: 'post',
-          transformRequest: (email: string, password: string) => ({
+          withParams: (email: string, password: string) => ({
             data: { email, password },
             headers: { 'X-Custom': 'test' },
           }),
@@ -37,7 +37,7 @@ describe('ResourceBuilder Transforms', () => {
 
       const request = moxios.requests.mostRecent()
 
-      expect(request.config.data).toEqual({
+      expect(JSON.parse(request.config.data)).toEqual({
         email: 'test@example.com',
         password: 'password123',
       })
@@ -55,7 +55,7 @@ describe('ResourceBuilder Transforms', () => {
       const resource = builder.build('/users', {
         signIn: {
           method: 'post',
-          transformRequest: (email: string, password?: string) => ({
+          withParams: (email: string, password?: string) => ({
             data: {
               email,
               ...(password && { password }),
@@ -76,7 +76,7 @@ describe('ResourceBuilder Transforms', () => {
 
       const request1 = await moxios.requests.mostRecent()
 
-      expect(request1.config.data).toEqual({
+      expect(JSON.parse(request1.config.data)).toEqual({
         email: 'test@example.com',
       })
 
@@ -93,7 +93,7 @@ describe('ResourceBuilder Transforms', () => {
       await new Promise<void>((resolve) => moxios.wait(() => resolve()))
       const request2 = await moxios.requests.mostRecent()
 
-      expect(request2.config.data).toEqual({
+      expect(JSON.parse(request2.config.data)).toEqual({
         email: 'test@example.com',
         password: 'password123',
       })
@@ -107,7 +107,7 @@ describe('ResourceBuilder Transforms', () => {
     })
   })
 
-  describe('transformResponse', () => {
+  describe('withResult', () => {
     test('transforms response data', async () => {
       const builder = new ResourceBuilder({ baseURL: 'http://api.example.com' })
 
@@ -119,7 +119,7 @@ describe('ResourceBuilder Transforms', () => {
       const resource = builder.build('/users', {
         getProfile: {
           method: 'get',
-          transformResponse: (response: AxiosResponse): User => ({
+          withResult: (response: AxiosResponse): User => ({
             id: response.data.id,
             email: response.data.email,
           }),
@@ -185,10 +185,10 @@ describe('ResourceBuilder Transforms', () => {
       const resource = builder.build('/auth', {
         signIn: {
           method: 'post',
-          transformRequest: (email: string, password: string) => ({
+          withParams: (email: string, password: string) => ({
             data: { email, password },
           }),
-          transformResponse: (response: AxiosResponse): SignInResponse => ({
+          withResult: (response: AxiosResponse): SignInResponse => ({
             token: response.data.auth_token,
             user: {
               id: response.data.user.id,
@@ -218,7 +218,7 @@ describe('ResourceBuilder Transforms', () => {
       const request = await moxios.requests.mostRecent()
 
       // Verify request transform
-      expect(request.config.data).toEqual({
+      expect(JSON.parse(request.config.data)).toEqual({
         email: 'test@example.com',
         password: 'password123',
       })
@@ -253,7 +253,7 @@ describe('ResourceBuilder Transforms', () => {
       const resource = builder.build('/auth', {
         signIn: {
           method: 'post',
-          transformRequest: (email: string, password: string) => ({
+          withParams: (email: string, password: string) => ({
             data: { email, password },
           }),
         },
@@ -292,10 +292,10 @@ describe('ResourceBuilder Transforms', () => {
         // Both transforms
         signIn: {
           method: 'post',
-          transformRequest: (email: string, password: string) => ({
+          withParams: (email: string, password: string) => ({
             data: { email, password },
           }),
-          transformResponse: (response: AxiosResponse): SignInResponse => ({
+          withResult: (response: AxiosResponse): SignInResponse => ({
             token: response.data.token,
             user: response.data.user,
           }),
@@ -303,14 +303,14 @@ describe('ResourceBuilder Transforms', () => {
         // Only request transform
         register: {
           method: 'post',
-          transformRequest: (email: string, password: string) => ({
+          withParams: (email: string, password: string) => ({
             data: { email, password },
           }),
         },
         // Only response transform
         getProfile: {
           method: 'get',
-          transformResponse: (response: AxiosResponse): User => response.data.user,
+          withResult: (response: AxiosResponse): User => response.data.user,
         },
         // No transforms
         logout: {
